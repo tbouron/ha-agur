@@ -26,7 +26,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
 class WaterSensor(CoordinatorEntity[AgurDataUpdateCoordinator], SensorEntity):
     """Water Sensor class."""
-    _attr_name = f"{DOMAIN}_water_{SENSOR_PLATFORM}"
+    _attr_name = "Water index"
     _attr_icon = SENSOR_WATER_ICON
     _attr_state_class = SENSOR_WATER_STATE_CLASS_TOTAL_INCREASING
     _attr_device_class = SENSOR_WATER_DEVICE_CLASS
@@ -35,6 +35,10 @@ class WaterSensor(CoordinatorEntity[AgurDataUpdateCoordinator], SensorEntity):
     def __init__(self, coordinator: AgurDataUpdateCoordinator):
         """Pass coordinator to CoordinatorEntity."""
         super().__init__(coordinator=coordinator)
+        self.entity_id = f"{SENSOR_PLATFORM}.{DOMAIN}_water_index_{coordinator.contract_id}"
+        self._attr_extra_state_attributes = {
+            "contract": self.coordinator.contract_id
+        }
 
     @property
     def native_value(self) -> float:
