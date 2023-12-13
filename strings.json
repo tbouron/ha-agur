@@ -1,0 +1,23 @@
+{
+  "title": "Agur integration",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Log into Agur",
+        "description": "Please enter your login credential for Agur",
+        "data": {
+          "username": "Username",
+          "password": "Password"
+        }
+      },
+      "contract": {
+        "title": "Select Agur contract",
+        "description": "An Agur account can have multiple contract attached. Please select the one you wish to import"
+      }
+    },
+    "error": {
+      "auth": "Fail to log into Agur. Please check your username and password",
+      "contract": "The meter does not appear to exists. Please check the input"
+    }
+  }
+}
