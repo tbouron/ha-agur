@@ -1,12 +1,15 @@
 # Base component constants
-DOMAIN = "agur"
+from typing import Final
+
+DOMAIN: Final = "agur"
+DEFAULT_NAME: Final = "Agur"
 VERSION = 1
 
 # Configuration and options constants
 CONF_ENABLED = "enabled"
 CONF_USERNAME = "username"
 CONF_PASSWORD = "password"
-CONF_CONTRACT = "contract"
+CONF_CONTRACT_IDS = "contract_ids"
 
 # Sensor constant
 SENSOR_WATER_ICON = "mdi:water"
@@ -20,7 +23,7 @@ PLATFORMS = [SENSOR_PLATFORM]
 
 STARTUP_MESSAGE = f"""
 ---------------------------------------------------------------------
-Agur integration
+{DEFAULT_NAME} integration
 Custom integration to fetch water data from Agur: https://ael.agur.fr
 
 Domain: {DOMAIN}

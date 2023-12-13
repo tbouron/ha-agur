@@ -8,7 +8,7 @@ from homeassistant import config_entries
 from homeassistant.data_entry_flow import FlowResult
 
 from .agur_client import AgurClient
-from .const import DOMAIN, CONF_USERNAME, CONF_PASSWORD, VERSION, CONF_CONTRACT
+from .const import DOMAIN, CONF_USERNAME, CONF_PASSWORD, VERSION, CONF_CONTRACT_IDS, DEFAULT_NAME
 
 _LOGGER: logging.Logger = logging.getLogger(__package__)
 
@@ -26,7 +26,7 @@ class AgurConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
         self.contract_schema = vol.Schema(
             {
-                vol.Required(CONF_CONTRACT): str,
+                vol.Required(CONF_CONTRACT_IDS): str,
             }
         )
 
@@ -57,9 +57,10 @@ class AgurConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         client = AgurClient(session_token=self._session_token, auth_token=self._auth_token)
         contracts = await self.hass.async_add_executor_job(client.get_contracts)
 
+        # TODO: Support selection of multiple contracts
         self.contract_schema = vol.Schema(
             {
-                vol.Required(CONF_CONTRACT): vol.In(list(map(lambda contract: contract["id"], contracts)))
+                vol.Required(CONF_CONTRACT_IDS): vol.In(list(map(lambda contract: contract["id"], contracts)))
             }
         )
 
@@ -68,7 +69,7 @@ class AgurConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 step_id="contract", data_schema=self.contract_schema
             )
 
-        self._contract = user_input[CONF_CONTRACT]
+        self._contract = user_input[CONF_CONTRACT_IDS]
 
         return await self._async_agur_contract()
 
@@ -113,7 +114,7 @@ class AgurConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         config_data = {
             CONF_USERNAME: self._username,
             CONF_PASSWORD: self._password,
-            CONF_CONTRACT: self._contract,
+            CONF_CONTRACT_IDS: [self._contract],
         }
         existing_entry = await self.async_set_unique_id(self._contract)
 
@@ -129,5 +130,9 @@ class AgurConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return self.async_abort(reason="reauth_successful")
 
         return self.async_create_entry(
-            title=self._contract, data=config_data
+            title=DEFAULT_NAME, data=config_data
         )
+
+    async def async_step_import(self, user_input: dict[str, Any]) -> FlowResult:
+        """Handle import from configuration.yaml."""
+        return await self.async_step_user(user_input)

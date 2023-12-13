@@ -24,7 +24,7 @@ class AgurDataUpdateCoordinator(DataUpdateCoordinator):
             hass: HomeAssistant,
             username: str,
             password: str,
-            contract_id: str
+            contract_ids: list[str]
     ) -> None:
         """Initialize."""
         self.platforms = []
@@ -33,7 +33,7 @@ class AgurDataUpdateCoordinator(DataUpdateCoordinator):
         self.auth_token: str | None = None
         self.username = username
         self.password = password
-        self.contract_id = contract_id
+        self.contract_ids = contract_ids
 
         super().__init__(hass, _LOGGER, name=DOMAIN, update_interval=SCAN_INTERVAL)
 
@@ -55,14 +55,17 @@ class AgurDataUpdateCoordinator(DataUpdateCoordinator):
                 _LOGGER.info("First sync: fetching auth token")
                 await self._async_get_auth_token()
 
-            _LOGGER.info("Fetching data")
-            response = await self._async_get_data()
-            _LOGGER.info(f"Data fetched: {response}")
-            return response
+            data = {}
+            for contract_id in self.contract_ids:
+                _LOGGER.info(f"Fetching data for contract '{contract_id}'")
+                data[contract_id] = await self._async_get_data(contract_id=contract_id)
+                _LOGGER.info(f"Data fetched for contract '{contract_id}': {data[contract_id]}")
+
+            return data
 
         except HTTPError as exception:
             if exception.response.status_code == 401:
-                raise ConfigEntryAuthFailed(f"Invalid credentials for contrat {self.contract_id}")
+                raise ConfigEntryAuthFailed(f"Invalid credentials for Agur account {self.username}")
             raise exception
         except Exception as exception:
             raise UpdateFailed(f"Error communicating with API: {exception}")
@@ -78,7 +81,7 @@ class AgurDataUpdateCoordinator(DataUpdateCoordinator):
         response = await self.hass.async_add_executor_job(client.login, self.username, self.password)
         self.auth_token = response["tokenAuthentique"]
 
-    async def _async_get_data(self):
+    async def _async_get_data(self, contract_id):
         client = AgurClient(session_token=self.session_token, auth_token=self.auth_token)
-        response = await self.hass.async_add_executor_job(client.get_data, self.contract_id)
+        response = await self.hass.async_add_executor_job(client.get_data, contract_id)
         return response[0]["valeurIndex"]
