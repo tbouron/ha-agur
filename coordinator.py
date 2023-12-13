@@ -11,8 +11,8 @@ from requests import HTTPError
 from .agur_client import AgurClient
 from .const import DOMAIN
 
-_LOGGER: logging.Logger = logging.getLogger(__package__)
-# TODO: This should be configurable
+_LOGGER: logging.Logger = logging.getLogger(__name__)
+# TODO: This should be configurable?
 SCAN_INTERVAL = timedelta(days=1)
 
 
