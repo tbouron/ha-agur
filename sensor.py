@@ -28,7 +28,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
     coordinator = hass.data[DOMAIN][config_entry.entry_id]
     entities = []
     for contract_id in coordinator.contract_ids:
-        _LOGGER.info(f"Add sensor for Agur contract {contract_id}")
+        _LOGGER.debug(f"Add sensor for Agur contract {contract_id}")
         entities.append(WaterSensor(coordinator=coordinator, contract_id=contract_id))
     async_add_entities(entities, True)
 

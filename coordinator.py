@@ -41,25 +41,25 @@ class AgurDataUpdateCoordinator(DataUpdateCoordinator):
         """Update data via library."""
         # If we do not have any session token (first time)
         if self.session_token is None or self.expiration_date is None:
-            _LOGGER.info("First sync: fetching session token")
+            _LOGGER.debug("First sync: fetching session token")
             await self._async_get_session_token()
 
         # If the session token is expired, retrieve one
         if datetime.now().replace(tzinfo=self.expiration_date.tzinfo) > self.expiration_date:
-            _LOGGER.info("Session token expired: fetching a new one")
+            _LOGGER.debug("Session token expired: fetching a new one")
             await self._async_get_session_token()
 
         try:
             # If we do not have any auth token (first time)
             if self.auth_token is None:
-                _LOGGER.info("First sync: fetching auth token")
+                _LOGGER.debug("First sync: fetching auth token")
                 await self._async_get_auth_token()
 
             data = {}
             for contract_id in self.contract_ids:
-                _LOGGER.info(f"Fetching data for contract '{contract_id}'")
+                _LOGGER.debug(f"Fetching data for contract '{contract_id}'")
                 data[contract_id] = await self._async_get_data(contract_id=contract_id)
-                _LOGGER.info(f"Data fetched for contract '{contract_id}': {data[contract_id]}")
+                _LOGGER.debug(f"Data fetched for contract '{contract_id}': {data[contract_id]}")
 
             return data
 
