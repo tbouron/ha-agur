@@ -23,7 +23,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
     entities = []
     for contract_id in coordinator.contract_ids:
         _LOGGER.debug(f"Add sensor for Agur contract {contract_id}")
-        entities.append(WaterSensor(coordinator=coordinator, contract_id=contract_id))
+        entities.append(WaterSensor(coordinator=coordinator, contract_id=contract_id, unique_id=config_entry.entry_id))
     async_add_entities(entities, True)
 
 
@@ -39,6 +39,7 @@ class WaterSensor(CoordinatorEntity[AgurDataUpdateCoordinator], SensorEntity):
         """Pass coordinator to CoordinatorEntity."""
         super().__init__(coordinator=coordinator)
         self.entity_id = f"{SENSOR_PLATFORM}.{DOMAIN}_water_index_{contract_id}"
+        self._attr_unique_id = unique_id
         self._contract_id = contract_id
         self._attr_extra_state_attributes = {
             "contract_id": contract_id
