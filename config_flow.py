@@ -34,6 +34,7 @@ class AgurConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._password: str | None = None
         self._session_token: str | None = None
         self._auth_token: str | None = None
+        self._available_contracts: list[dict[str, Any]] = []
         self._contract: str | None = None
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> FlowResult:
@@ -60,7 +61,7 @@ class AgurConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         # TODO: Support selection of multiple contracts
         self.contract_schema = vol.Schema(
             {
-                vol.Required(CONF_CONTRACT_IDS): vol.In(list(map(lambda contract: contract["id"], contracts)))
+                vol.Required(CONF_CONTRACT_IDS): vol.In(list(map(lambda contract: contract.id, contracts)))
             }
         )
 
@@ -116,7 +117,7 @@ class AgurConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             CONF_PASSWORD: self._password,
             CONF_CONTRACT_IDS: [self._contract],
         }
-        existing_entry = await self.async_set_unique_id(self._contract)
+        existing_entry = await self.async_set_unique_id(self._username)
 
         if existing_entry:
             self.hass.config_entries.async_update_entry(

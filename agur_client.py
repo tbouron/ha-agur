@@ -1,7 +1,50 @@
+from __future__ import annotations
+
 import uuid
+from datetime import datetime
 from typing import Any
 
 from requests import post, get
+
+
+class AgurContract:
+    id: str | None = None
+    owner: str | None = None
+    address: str | None = None
+    meter_id: str | None = None
+    meter_serial_number: str | None = None
+    meter_endpoint_number: str | None = None
+
+    def __init__(self, json: dict[str, Any]) -> None:
+        if "numeroContrat" in json:
+            self.id = json["numeroContrat"]
+
+        if "nomClientTitulaire" in json:
+            self.owner = json["nomClientTitulaire"]
+
+        if "adresseLivraisonConstruite" in json:
+            self.address = json["adresseLivraisonConstruite"]
+
+        if "identifiantAppareil" in json and json["identifiantAppareil"] != "0":
+            self.meter_id = json["identifiantAppareil"]
+
+        if "numeroPhysiqueAppare" in json:
+            self.meter_serial_number = json["numeroPhysiqueAppareil"]
+
+        if "numeroPointLivraison" in json:
+            self.meter_endpoint_number = json["numeroPointLivraison"]
+
+
+class AgurDataPoint:
+    value: float | None = None
+    date: datetime | None = None
+
+    def __init__(self, json: dict[str, Any]) -> None:
+        if "valeurIndex" in json:
+            self.value = float(json["valeurIndex"])
+
+        if "dateReleve" in json:
+            self.date = datetime.fromisoformat(json["dateReleve"])
 
 
 class AgurClient:
@@ -47,7 +90,7 @@ class AgurClient:
 
         return response.json()
 
-    def get_contracts(self) -> list[dict[str, Any]]:
+    def get_contracts(self) -> list[AgurContract]:
         response = get(
             "https://ael.agur.fr/webapi/Abonnement/contrats?userWebId=&recherche=&tri=NumeroContrat&triDecroissant=false&indexPage=0&nbElements=25",
             headers={
@@ -57,13 +100,21 @@ class AgurClient:
             })
         response.raise_for_status()
 
-        return list(map(lambda contract: {
-            "id": contract["numeroContrat"],
-            "owner": contract["nomClientTitulaire"],
-            "address": contract["adresseLivraisonConstruite"]
-        }, response.json()["resultats"]))
+        return list(map(lambda contract: AgurContract(json=contract), response.json()["resultats"]))
 
-    def get_data(self, contract_id) -> list[dict[str, Any]]:
+    def get_contract(self, contract_id: str) -> AgurContract:
+        response = get(
+            f"https://ael.agur.fr/webapi/Abonnement/detailAbonnement/{contract_id}",
+            headers={
+                "ConversationId": self.app_id,
+                "User-Agent": self.user_agent,
+                "Token": self.auth_token,
+            })
+        response.raise_for_status()
+
+        return AgurContract(json=response.json())
+
+    def get_data(self, contract_id) -> list[AgurDataPoint]:
         response = get(f"https://ael.agur.fr/webapi/Facturation/listeConsommationsFacturees/{contract_id}", headers={
             "ConversationId": self.app_id,
             "User-Agent": self.user_agent,
@@ -71,4 +122,4 @@ class AgurClient:
         })
         response.raise_for_status()
 
-        return list(response.json()["resultats"])
+        return list(map(lambda json: AgurDataPoint(json=json), response.json()["resultats"]))
