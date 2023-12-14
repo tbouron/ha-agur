@@ -3,21 +3,15 @@ from __future__ import annotations
 
 import logging
 
-from homeassistant.components.sensor import SensorEntity
+from homeassistant.components.sensor import SensorEntity, SensorStateClass, SensorDeviceClass
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import UnitOfVolume
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.device_registry import DeviceEntryType
-from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DEFAULT_NAME
 from .const import DOMAIN
 from .const import SENSOR_PLATFORM
-from .const import SENSOR_WATER_DEVICE_CLASS
-from .const import SENSOR_WATER_ICON
-from .const import SENSOR_WATER_STATE_CLASS_TOTAL_INCREASING
-from .const import SENSOR_WATER_UNIT
 from .coordinator import AgurDataUpdateCoordinator
 
 _LOGGER: logging.Logger = logging.getLogger(__name__)
@@ -36,10 +30,10 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
 class WaterSensor(CoordinatorEntity[AgurDataUpdateCoordinator], SensorEntity):
     """Agur water Sensor class."""
     _attr_name = "Water index"
-    _attr_icon = SENSOR_WATER_ICON
-    _attr_state_class = SENSOR_WATER_STATE_CLASS_TOTAL_INCREASING
-    _attr_device_class = SENSOR_WATER_DEVICE_CLASS
-    _attr_native_unit_of_measurement = SENSOR_WATER_UNIT
+    _attr_icon = "mdi:water"
+    _attr_state_class = SensorStateClass.TOTAL_INCREASING
+    _attr_device_class = SensorDeviceClass.WATER
+    _attr_native_unit_of_measurement = UnitOfVolume.LITERS
 
     def __init__(self, coordinator: AgurDataUpdateCoordinator, contract_id: str) -> None:
         """Pass coordinator to CoordinatorEntity."""
