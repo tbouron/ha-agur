@@ -23,5 +23,19 @@
       "already_configured": "[%key:common::config_flow::abort::already_configured_device%]",
       "reauth_successful": "[%key:common::config_flow::abort::reauth_successful%]"
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Agur contracts",
+        "description": "Please update the Agur contracts you wish to import in Home Assistant."
+      }
+    },
+    "error": {
+      "contact": "Fail to get the credentials for your Agur account. The configuration might be corrupted. Please remove this account and add it again.",
+      "auth": "Fail to log into your Agur account. Please check your username and password.",
+      "contracts": "Fail to fetch the contracts from your Agur account. Please try again later.",
+      "unknown": "[%key:common::config_flow::error::unknown%]"
+    }
   }
 }
