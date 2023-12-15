@@ -9,7 +9,7 @@ from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import config_validation
 
 from .agur_client import AgurClient
-from .const import DOMAIN, CONF_USERNAME, CONF_PASSWORD, VERSION, CONF_CONTRACT_IDS, DEFAULT_NAME
+from .const import DOMAIN, CONF_USERNAME, CONF_PASSWORD, VERSION, CONF_CONTRACT_IDS
 
 _LOGGER: logging.Logger = logging.getLogger(__package__)
 
@@ -40,9 +40,6 @@ class AgurConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Handle a login flow, initialized by the user."""
-        if self._async_current_entries():
-            return self.async_abort(reason="single_instance_allowed")
-
         if user_input is None:
             return self.async_show_form(
                 step_id="user", data_schema=self.login_schema
@@ -50,6 +47,8 @@ class AgurConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         self._username = user_input[CONF_USERNAME]
         self._password = user_input[CONF_PASSWORD]
+
+        self._async_abort_entries_match({CONF_USERNAME: user_input[CONF_USERNAME]})
 
         return await self._async_agur_login(step_id="user")
 
