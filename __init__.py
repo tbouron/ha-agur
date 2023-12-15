@@ -1,4 +1,3 @@
-import asyncio
 import logging
 
 from homeassistant.config_entries import ConfigEntry
@@ -34,12 +33,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
 
     hass.data[DOMAIN][config_entry.entry_id] = coordinator
 
-    for platform in PLATFORMS:
-        if config_entry.options.get(platform, True):
-            coordinator.platforms.append(platform)
-            await hass.async_add_job(
-                hass.config_entries.async_forward_entry_setup(config_entry, platform)
-            )
+    await hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS)
 
     config_entry.add_update_listener(async_reload_entry)
     return True
@@ -47,19 +41,9 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Handle removal of an entry."""
-    coordinator = hass.data[DOMAIN][entry.entry_id]
-    unloaded = all(
-        await asyncio.gather(
-            *[
-                hass.config_entries.async_forward_entry_unload(entry, platform)
-                for platform in PLATFORMS
-                if platform in coordinator.platforms
-            ]
-        )
-    )
+    unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unloaded:
         hass.data[DOMAIN].pop(entry.entry_id)
-
     return unloaded
 
 
