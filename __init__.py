@@ -1,7 +1,7 @@
 import asyncio
 import logging
 
-from homeassistant.config_entries import ConfigEntry, SOURCE_IMPORT
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 
@@ -12,13 +12,7 @@ _LOGGER: logging.Logger = logging.getLogger(__name__)
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigEntry):
-    hass.async_create_task(
-        hass.config_entries.flow.async_init(
-            DOMAIN,
-            context={"source": SOURCE_IMPORT},
-            data=config,
-        )
-    )
+    """This integration can be setup only via the UI."""
     return True
 
 

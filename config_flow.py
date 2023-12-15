@@ -57,13 +57,15 @@ class AgurConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Handle a contract selection flow."""
 
         client = AgurClient(session_token=self._session_token, auth_token=self._auth_token)
-        available_contracts = {c.id: f"Contract {c.id} ({c.address})" for c in await self.hass.async_add_executor_job(client.get_contracts)}
+        available_contracts = {c.id: f"Contract {c.id} ({c.address})" for c in
+                               await self.hass.async_add_executor_job(client.get_contracts)}
         default_contracts = list(available_contracts.keys())
 
         # TODO: Support selection of multiple contracts
         self.contract_schema = vol.Schema(
             {
-                vol.Required(CONF_CONTRACT_IDS, default=default_contracts): config_validation.multi_select(available_contracts)
+                vol.Required(CONF_CONTRACT_IDS, default=default_contracts): config_validation.multi_select(
+                    available_contracts)
             }
         )
 
@@ -135,7 +137,3 @@ class AgurConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return self.async_create_entry(
             title=DEFAULT_NAME, data=config_data
         )
-
-    async def async_step_import(self, user_input: dict[str, Any]) -> FlowResult:
-        """Handle import from configuration.yaml."""
-        return await self.async_step_user(user_input)
