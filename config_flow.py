@@ -135,5 +135,5 @@ class AgurConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return self.async_abort(reason="reauth_successful")
 
         return self.async_create_entry(
-            title=DEFAULT_NAME, data=config_data
+            title=f"Account - {self._username}", data=config_data
         )
