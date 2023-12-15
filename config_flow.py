@@ -6,6 +6,7 @@ from typing import Any
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.data_entry_flow import FlowResult
+from homeassistant.helpers import config_validation
 
 from .agur_client import AgurClient
 from .const import DOMAIN, CONF_USERNAME, CONF_PASSWORD, VERSION, CONF_CONTRACT_IDS, DEFAULT_NAME
@@ -35,7 +36,7 @@ class AgurConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._session_token: str | None = None
         self._auth_token: str | None = None
         self._available_contracts: list[dict[str, Any]] = []
-        self._contract: str | None = None
+        self._contract_ids: str | None = None
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Handle a login flow, initialized by the user."""
@@ -56,12 +57,13 @@ class AgurConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Handle a contract selection flow."""
 
         client = AgurClient(session_token=self._session_token, auth_token=self._auth_token)
-        contracts = await self.hass.async_add_executor_job(client.get_contracts)
+        available_contracts = {c.id: f"Contract {c.id} ({c.address})" for c in await self.hass.async_add_executor_job(client.get_contracts)}
+        default_contracts = list(available_contracts.keys())
 
         # TODO: Support selection of multiple contracts
         self.contract_schema = vol.Schema(
             {
-                vol.Required(CONF_CONTRACT_IDS): vol.In(list(map(lambda contract: contract.id, contracts)))
+                vol.Required(CONF_CONTRACT_IDS, default=default_contracts): config_validation.multi_select(available_contracts)
             }
         )
 
@@ -70,7 +72,7 @@ class AgurConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 step_id="contract", data_schema=self.contract_schema
             )
 
-        self._contract = user_input[CONF_CONTRACT_IDS]
+        self._contract_ids = user_input[CONF_CONTRACT_IDS]
 
         return await self._async_agur_contract()
 
@@ -115,7 +117,7 @@ class AgurConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         config_data = {
             CONF_USERNAME: self._username,
             CONF_PASSWORD: self._password,
-            CONF_CONTRACT_IDS: [self._contract],
+            CONF_CONTRACT_IDS: self._contract_ids,
         }
         existing_entry = await self.async_set_unique_id(self._username)
 

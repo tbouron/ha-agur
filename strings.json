@@ -3,21 +3,25 @@
   "config": {
     "step": {
       "user": {
-        "title": "Log into Agur",
-        "description": "Please enter your login credential for Agur",
+        "title": "Agur account",
+        "description": "Please enter your login credential for your Agur account.",
         "data": {
           "username": "Username",
           "password": "Password"
         }
       },
       "contract": {
-        "title": "Select Agur contract",
-        "description": "An Agur account can have multiple contract attached. Please select the one you wish to import"
+        "title": "Agur contracts",
+        "description": "Please select the Agur contracts you wish to import in Home Assistant."
       }
     },
     "error": {
-      "auth": "Fail to log into Agur. Please check your username and password",
-      "contract": "The meter does not appear to exists. Please check the input"
+      "auth": "Fail to log into your Agur account. Please check your username and password.",
+      "contract": "The contract does not appear to exists. Please check the input."
+    },
+    "abort": {
+      "single_instance_allowed": "[%key:common::config_flow::abort::single_instance_allowed%]",
+      "reauth_successful": "[%key:common::config_flow::abort::reauth_successful%]"
     }
   }
 }

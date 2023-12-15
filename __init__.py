@@ -28,9 +28,9 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
         hass.data.setdefault(DOMAIN, {})
         _LOGGER.debug(STARTUP_MESSAGE)
 
-    username = config_entry.data.get(CONF_USERNAME)
-    password = config_entry.data.get(CONF_PASSWORD)
-    contract_ids = config_entry.data.get(CONF_CONTRACT_IDS)
+    username: str = config_entry.data.get(CONF_USERNAME)
+    password: str = config_entry.data.get(CONF_PASSWORD)
+    contract_ids: list[str] = config_entry.data.get(CONF_CONTRACT_IDS)
 
     coordinator = AgurDataUpdateCoordinator(hass=hass, username=username, password=password, contract_ids=contract_ids)
     await coordinator.async_config_entry_first_refresh()
