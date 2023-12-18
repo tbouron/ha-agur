@@ -6,7 +6,8 @@ from datetime import timedelta, datetime
 
 from homeassistant.components.recorder import get_instance
 from homeassistant.components.recorder.models import StatisticData, StatisticMetaData
-from homeassistant.components.recorder.statistics import get_last_statistics, async_add_external_statistics
+from homeassistant.components.recorder.purge import purge_entity_data
+from homeassistant.components.recorder.statistics import get_last_statistics, async_add_external_statistics, clear_statistics
 from homeassistant.const import UnitOfVolume
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
@@ -42,7 +43,8 @@ class AgurDataUpdateCoordinator(DataUpdateCoordinator[dict[str, AgurDataUpdateCo
             hass: HomeAssistant,
             username: str,
             password: str,
-            contract_ids: list[str]
+            contract_ids: list[str],
+            import_statistics: bool
     ) -> None:
         """Initialize."""
         self.platforms = []
@@ -52,6 +54,7 @@ class AgurDataUpdateCoordinator(DataUpdateCoordinator[dict[str, AgurDataUpdateCo
         self.username = username
         self.password = password
         self.contract_ids = contract_ids
+        self.import_statistics = import_statistics
 
         super().__init__(hass, _LOGGER, name=DOMAIN, update_interval=SCAN_INTERVAL)
 
@@ -82,9 +85,7 @@ class AgurDataUpdateCoordinator(DataUpdateCoordinator[dict[str, AgurDataUpdateCo
                 )
                 data[contract_id] = AgurDataUpdateCoordinatorData(data_points=results[0], contract=results[1])
 
-                # TODO: Make this configurable with a config_entry.option
-                # TODO: This should not be within the coordinator. Possibly in the __init__.py or in sensors.py
-                await self._insert_statistics(coordinator_data=data[contract_id])
+                await self._handle_statistics(coordinator_data=data[contract_id])
 
             return data
 
@@ -114,7 +115,14 @@ class AgurDataUpdateCoordinator(DataUpdateCoordinator[dict[str, AgurDataUpdateCo
         client = AgurClient(session_token=self.session_token, auth_token=self.auth_token)
         return await self.hass.async_add_executor_job(client.get_contract, contract_id)
 
-    async def _insert_statistics(self, coordinator_data: AgurDataUpdateCoordinatorData):
+    async def _handle_statistics(self, coordinator_data: AgurDataUpdateCoordinatorData) -> None:
+        statistic_id = f"{DOMAIN}:water_consumption_{coordinator_data.contract.id}"
+        recorder = get_instance(self.hass)
+
+        if self.import_statistics is False:
+            # TODO: We might want to purge the statistics here. Although still TBD
+            return
+
         # I've decided to insert statics without a backing of a sensor. Few integrations in core use the same principal
         # For example:
         # - https://github.com/home-assistant/core/blob/dev/homeassistant/components/tibber/sensor.py#L594-L690
@@ -123,9 +131,8 @@ class AgurDataUpdateCoordinator(DataUpdateCoordinator[dict[str, AgurDataUpdateCo
         # Another solution would be to use a sensor for this using the following library:
         # https://github.com/ldotlopez/ha-historical-sensor
 
-        statistic_id = f"{DOMAIN}:water_consumption_{coordinator_data.contract.id}"
         daily_indexes_data = coordinator_data.data_points
-        last_stats = await get_instance(self.hass).async_add_executor_job(
+        last_stats = await recorder.async_add_executor_job(
             get_last_statistics,
             self.hass,
             1,

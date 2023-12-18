@@ -10,6 +10,7 @@ CONF_ENABLED = "enabled"
 CONF_USERNAME = "username"
 CONF_PASSWORD = "password"
 CONF_CONTRACT_IDS = "contract_ids"
+CONF_IMPORT_STATISTICS = "import_statistics"
 
 # Other constants
 SENSOR_PLATFORM = "sensor"

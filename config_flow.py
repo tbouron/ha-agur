@@ -8,14 +8,31 @@ from homeassistant import config_entries, exceptions
 from homeassistant.core import callback, HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import config_validation
+from homeassistant.helpers.selector import TextSelector, TextSelectorType, TextSelectorConfig
+from voluptuous import Schema
 
 from .agur_client import AgurClient
-from .const import DOMAIN, CONF_USERNAME, CONF_PASSWORD, VERSION, CONF_CONTRACT_IDS
+from .const import DOMAIN, CONF_USERNAME, CONF_PASSWORD, VERSION, CONF_CONTRACT_IDS, CONF_IMPORT_STATISTICS
 
-SESSION_TOKEN = "session"
-AUTH_TOKEN = "auth"
 _LOGGER: logging.Logger = logging.getLogger(__package__)
-
+AUTH_TOKEN = "auth"
+SESSION_TOKEN = "session"
+USER_SCHEMA = vol.Schema(
+    {
+        vol.Required(CONF_USERNAME): TextSelector(
+            TextSelectorConfig(
+                type=TextSelectorType.EMAIL,
+                autocomplete="username"
+            )
+        ),
+        vol.Required(CONF_PASSWORD): TextSelector(
+            TextSelectorConfig(
+                type=TextSelectorType.PASSWORD,
+                autocomplete="current-password"
+            )
+        )
+    }
+)
 
 async def get_agur_tokens(hass: HomeAssistant, username: str, password: str) -> dict[str, str]:
     try:
@@ -48,30 +65,21 @@ class AgurConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     def __init__(self):
         """Initialize."""
-        self.login_schema = vol.Schema(
-            {
-                vol.Required(CONF_USERNAME): str,
-                vol.Required(CONF_PASSWORD): str
-            }
-        )
-        self.contract_schema = vol.Schema(
-            {
-                vol.Required(CONF_CONTRACT_IDS): str,
-            }
-        )
-
         self._username: str | None = None
         self._password: str | None = None
         self._session_token: str | None = None
         self._auth_token: str | None = None
         self._available_contracts: list[dict[str, Any]] = []
         self._contract_ids: str | None = None
+        self._import_statistics: bool | None = None
+        self.configuration_schema: Schema | None = None
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Handle a login flow, initialized by the user."""
         if user_input is None:
             return self.async_show_form(
-                step_id="user", data_schema=self.login_schema
+                step_id="user",
+                data_schema=USER_SCHEMA
             )
 
         self._username = user_input[CONF_USERNAME]
@@ -81,33 +89,38 @@ class AgurConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         return await self._async_agur_login(step_id="user")
 
-    async def async_step_contract(self, user_input: dict[str, Any] | None = None) -> FlowResult:
-        """Handle a contract selection flow."""
+    async def async_step_configuration(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+        """Handle the options selection flow."""
         available_contracts = await get_agur_contract_options(
             hass=self.hass,
             session_token=self._session_token,
             auth_token=self._auth_token
         )
-        # client = AgurClient(session_token=self._session_token, auth_token=self._auth_token)
-        # available_contracts = {c.id: f"Contract {c.id} ({c.address})" for c in
-        #                        await self.hass.async_add_executor_job(client.get_contracts)}
         default_contracts = list(available_contracts.keys())
 
-        self.contract_schema = vol.Schema(
+        self.configuration_schema = vol.Schema(
             {
-                vol.Required(CONF_CONTRACT_IDS, default=default_contracts): config_validation.multi_select(
-                    available_contracts)
+                vol.Required(
+                    CONF_CONTRACT_IDS,
+                    default=default_contracts
+                ): config_validation.multi_select(available_contracts),
+                vol.Optional(
+                    CONF_IMPORT_STATISTICS,
+                    default=True
+                ): config_validation.boolean,
             }
         )
 
         if user_input is None:
             return self.async_show_form(
-                step_id="contract", data_schema=self.contract_schema
+                step_id="configuration",
+                data_schema=self.configuration_schema
             )
 
         self._contract_ids = user_input[CONF_CONTRACT_IDS]
+        self._import_statistics = user_input[CONF_IMPORT_STATISTICS]
 
-        return await self._async_agur_contract()
+        return await self._async_agur_configuration(step_id="configuration")
 
     async def _async_agur_login(self, step_id: str) -> FlowResult:
         """Handle login with Agur."""
@@ -117,12 +130,6 @@ class AgurConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             tokens = await get_agur_tokens(hass=self.hass, username=self._username, password=self._password)
             self._session_token = tokens[SESSION_TOKEN]
             self._auth_token = tokens[AUTH_TOKEN]
-            # client = AgurClient()
-            # response = await self.hass.async_add_executor_job(client.init)
-            # self._session_token = response["token"]
-            # client = AgurClient(session_token=self._session_token)
-            # response = await self.hass.async_add_executor_job(client.login, self._username, self._password)
-            # self._auth_token = response["tokenAuthentique"]
 
         except Exception as ex:
             _LOGGER.error(ex)
@@ -130,12 +137,14 @@ class AgurConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         if errors:
             return self.async_show_form(
-                step_id=step_id, data_schema=self.login_schema, errors=errors
+                step_id=step_id,
+                data_schema=USER_SCHEMA,
+                errors=errors
             )
 
-        return await self.async_step_contract()
+        return await self.async_step_configuration()
 
-    async def _async_agur_contract(self) -> FlowResult:
+    async def _async_agur_configuration(self, step_id: str) -> FlowResult:
         """Handle Agur contract selection."""
         try:
             return await self._async_create_entry()
@@ -143,9 +152,9 @@ class AgurConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         except Exception as ex:
             _LOGGER.error(ex)
             return self.async_show_form(
-                step_id="contract",
-                data_schema=self.contract_schema,
-                errors={"base": "contract"}
+                step_id=step_id,
+                data_schema=self.configuration_schema,
+                errors={"base": "config_entry"}
             )
 
     async def _async_create_entry(self) -> FlowResult:
@@ -156,6 +165,7 @@ class AgurConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         }
         config_option = {
             CONF_CONTRACT_IDS: self._contract_ids,
+            CONF_IMPORT_STATISTICS: self._import_statistics
         }
         existing_entry = await self.async_set_unique_id(self._username)
 
@@ -202,6 +212,7 @@ class AgurOptionFlow(config_entries.OptionsFlow):
         errors = {}
         available_contracts = []
         default_contracts = self.config_entry.options.get(CONF_CONTRACT_IDS, [])
+        default_import_statistics = self.config_entry.options.get(CONF_IMPORT_STATISTICS, False)
 
         # We want to save here
         if user_input is not None:
@@ -246,6 +257,10 @@ class AgurOptionFlow(config_entries.OptionsFlow):
                         CONF_CONTRACT_IDS,
                         default=default_contracts,
                     ): config_validation.multi_select(available_contracts),
+                    vol.Optional(
+                        CONF_IMPORT_STATISTICS,
+                        default=default_import_statistics
+                    ): config_validation.boolean,
                 }
             ),
             errors=errors,

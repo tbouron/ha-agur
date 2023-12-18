@@ -4,7 +4,8 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 
-from .const import DOMAIN, STARTUP_MESSAGE, CONF_USERNAME, CONF_PASSWORD, PLATFORMS, CONF_CONTRACT_IDS
+from .const import DOMAIN, STARTUP_MESSAGE, CONF_USERNAME, CONF_PASSWORD, PLATFORMS, CONF_CONTRACT_IDS, \
+    CONF_IMPORT_STATISTICS
 from .coordinator import AgurDataUpdateCoordinator
 
 _LOGGER: logging.Logger = logging.getLogger(__name__)
@@ -24,8 +25,15 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     username: str = config_entry.data.get(CONF_USERNAME)
     password: str = config_entry.data.get(CONF_PASSWORD)
     contract_ids: list[str] = config_entry.options.get(CONF_CONTRACT_IDS)
+    import_statistics: bool = config_entry.options.get(CONF_IMPORT_STATISTICS)
 
-    coordinator = AgurDataUpdateCoordinator(hass=hass, username=username, password=password, contract_ids=contract_ids)
+    coordinator = AgurDataUpdateCoordinator(
+        hass=hass,
+        username=username,
+        password=password,
+        contract_ids=contract_ids,
+        import_statistics=import_statistics
+    )
     await coordinator.async_config_entry_first_refresh()
 
     if not coordinator.last_update_success:
