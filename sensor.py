@@ -52,7 +52,6 @@ class WaterSensor(CoordinatorEntity[AgurDataUpdateCoordinator], SensorEntity):
         }
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, self.coordinator.data[contract_id].contract.meter_id)},
-            default_manufacturer=DEFAULT_NAME,
             default_name=self.coordinator.data[contract_id].contract.meter_serial_number,
             serial_number=self.coordinator.data[contract_id].contract.meter_serial_number
         )
