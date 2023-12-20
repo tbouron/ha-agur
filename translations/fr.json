@@ -1,0 +1,79 @@
+{
+  "title": "Agur",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Compte Agur",
+        "description": "Merci d'entrer votre identifiant et mot de passe pour votre compte Agur.",
+        "data": {
+          "username": "Identifiant",
+          "password": "Mot de passe"
+        }
+      },
+      "configuration": {
+        "title": "Configuration Agur",
+        "data": {
+          "contract_ids": "Abonnements disponibles",
+          "import_statistics": "Importer les statistiques pour les abonnements sélectionnés?"
+        },
+        "data_description": {
+          "contract_ids": "Merci de sélectionner les abonnements Agur que vous souhaitez importer dans Home Assistant.",
+          "import_statistics": "Si vous cochez cette case, l'historique sera importé en même temps que les données à J-1. Veuillez noter que si vous décochez cette case après l'avoir activé, l'historique sera gardé."
+        }
+      }
+    },
+    "error": {
+      "auth": "Impossible de se connecter à votre compte Agur. Merci de vérifier que votre identifiant et mot de passe sont corrects.",
+      "config_entry": "Impossible de sauvegarder la configuration. Merci d'essayer à nouveau plus tard."
+    },
+    "abort": {
+      "already_configured": "[%key:common::config_flow::abort::already_configured_account%]",
+      "reauth_successful": "[%key:common::config_flow::abort::reauth_successful%]"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Configuration Agur",
+        "data": {
+          "contract_ids": "Abonnements disponibles",
+          "import_statistics": "Importer les statistiques pour les abonnements sélectionnés?"
+        },
+        "data_description": {
+          "contract_ids": "Merci de sélectionner les abonnements Agur que vous souhaitez importer dans Home Assistant.",
+          "import_statistics": "Si vous cochez cette case, l'historique sera importé en même temps que les données à J-1. Veuillez noter que si vous décochez cette case après l'avoir activé, l'historique sera gardé."
+        }
+      }
+    },
+    "error": {
+      "contact": "Fail to get the credentials for your Agur account. The configuration might be corrupted. Please remove this account and add it again.",
+      "auth": "Fail to log into your Agur account. Please check your username and password.",
+      "contracts": "Fail to fetch the contracts from your Agur account. Please try again later.",
+      "unknown": "[%key:common::config_flow::error::unknown%]"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "last_water_index": {
+        "name": "Dernier index",
+        "state_attributes": {
+          "last_read": {
+            "name": "Date"
+          },
+          "contract_id": {
+            "name": "Abonnement"
+          },
+          "contract_owner": {
+            "name": "Titulaire"
+          },
+          "contract_address": {
+            "name": "Adresse"
+          },
+          "meter_serial_number": {
+            "name": "Compteur"
+          }
+        }
+      }
+    }
+  }
+}

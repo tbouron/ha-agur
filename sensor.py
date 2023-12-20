@@ -30,7 +30,8 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
 
 class WaterSensor(CoordinatorEntity[AgurDataUpdateCoordinator], SensorEntity):
     """Agur water Sensor class."""
-    _attr_name = "Last water index"
+    _attr_has_entity_name = True
+    _attr_translation_key = "last_water_index"
     _attr_icon = "mdi:counter"
     _attr_state_class = SensorStateClass.TOTAL_INCREASING
     _attr_device_class = SensorDeviceClass.WATER
@@ -52,8 +53,8 @@ class WaterSensor(CoordinatorEntity[AgurDataUpdateCoordinator], SensorEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, self.coordinator.data[contract_id].contract.meter_id)},
             default_manufacturer=DEFAULT_NAME,
-            default_name="Water meter",
-            model=self.coordinator.data[contract_id].contract.meter_serial_number
+            default_name=self.coordinator.data[contract_id].contract.meter_serial_number,
+            serial_number=self.coordinator.data[contract_id].contract.meter_serial_number
         )
 
     @property

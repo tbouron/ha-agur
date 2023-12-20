@@ -28,7 +28,7 @@ class AgurContract:
         if "identifiantAppareil" in json and json["identifiantAppareil"] != "0":
             self.meter_id = json["identifiantAppareil"]
 
-        if "numeroPhysiqueAppare" in json:
+        if "numeroPhysiqueAppareil" in json:
             self.meter_serial_number = json["numeroPhysiqueAppareil"]
 
         if "numeroPointLivraison" in json:

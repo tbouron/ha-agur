@@ -1,5 +1,5 @@
 {
-  "title": "Agur integration",
+  "title": "Agur",
   "config": {
     "step": {
       "user": {
@@ -27,7 +27,7 @@
       "config_entry": "Fail to save the configuration. Please try again later."
     },
     "abort": {
-      "already_configured": "[%key:common::config_flow::abort::already_configured_device%]",
+      "already_configured": "[%key:common::config_flow::abort::already_configured_account%]",
       "reauth_successful": "[%key:common::config_flow::abort::reauth_successful%]"
     }
   },
@@ -50,6 +50,30 @@
       "auth": "Fail to log into your Agur account. Please check your username and password.",
       "contracts": "Fail to fetch the contracts from your Agur account. Please try again later.",
       "unknown": "[%key:common::config_flow::error::unknown%]"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "last_water_index": {
+        "name": "Last index",
+        "state_attributes": {
+          "last_read": {
+            "name": "Last read"
+          },
+          "contract_id": {
+            "name": "Contract ID"
+          },
+          "contract_owner": {
+            "name": "Contract owner"
+          },
+          "contract_address": {
+            "name": "Contract address"
+          },
+          "meter_serial_number": {
+            "name": "Meter serial number"
+          }
+        }
+      }
     }
   }
 }
