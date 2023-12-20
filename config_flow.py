@@ -173,7 +173,6 @@ class AgurConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             self.hass.config_entries.async_update_entry(
                 existing_entry, data=config_data, options=config_option
             )
-            # Reload the Abode config entry otherwise devices will remain unavailable
             self.hass.async_create_task(
                 self.hass.config_entries.async_reload(existing_entry.entry_id)
             )
@@ -181,7 +180,7 @@ class AgurConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return self.async_abort(reason="reauth_successful")
 
         return self.async_create_entry(
-            title=f"Account - {self._username}", data=config_data, options=config_option
+            title=self._username, data=config_data, options=config_option
         )
 
     @staticmethod
