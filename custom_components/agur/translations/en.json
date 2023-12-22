@@ -27,8 +27,8 @@
       "config_entry": "Fail to save the configuration. Please try again later."
     },
     "abort": {
-      "already_configured": "[%key:common::config_flow::abort::already_configured_account%]",
-      "reauth_successful": "[%key:common::config_flow::abort::reauth_successful%]"
+      "already_configured": "Account is already configured",
+      "reauth_successful": "Re-authentication was successful"
     }
   },
   "options": {
@@ -49,16 +49,62 @@
       "contact": "Fail to get the credentials for your Agur account. The configuration might be corrupted. Please remove this account and add it again.",
       "auth": "Fail to log into your Agur account. Please check your username and password.",
       "contracts": "Fail to fetch the contracts from your Agur account. Please try again later.",
-      "unknown": "[%key:common::config_flow::error::unknown%]"
+      "unknown": "Unexpected error"
     }
   },
   "entity": {
     "sensor": {
-      "last_water_index": {
+      "last_index": {
         "name": "Last index",
         "state_attributes": {
-          "last_read": {
-            "name": "Last read"
+          "date": {
+            "name": "Date"
+          },
+          "contract_id": {
+            "name": "Contract ID"
+          },
+          "contract_owner": {
+            "name": "Contract owner"
+          },
+          "contract_address": {
+            "name": "Contract address"
+          },
+          "meter_serial_number": {
+            "name": "Meter serial number"
+          }
+        }
+      },
+      "last_invoice": {
+        "name": "Last invoice",
+        "state_attributes": {
+          "date": {
+            "name": "Date"
+          },
+          "contract_id": {
+            "name": "Contract ID"
+          },
+          "contract_owner": {
+            "name": "Contract owner"
+          },
+          "contract_address": {
+            "name": "Contract address"
+          },
+          "meter_serial_number": {
+            "name": "Meter serial number"
+          },
+          "invoice_number": {
+            "name": "Invoice number"
+          },
+          "payment_date": {
+            "name": "Payment date"
+          }
+        }
+      },
+      "balance": {
+        "name": "Balance",
+        "state_attributes": {
+          "date": {
+            "name": "Date"
           },
           "contract_id": {
             "name": "Contract ID"

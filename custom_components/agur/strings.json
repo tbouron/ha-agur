@@ -54,11 +54,11 @@
   },
   "entity": {
     "sensor": {
-      "last_water_index": {
+      "last_index": {
         "name": "Last index",
         "state_attributes": {
-          "last_read": {
-            "name": "Last read"
+          "date": {
+            "name": "[%key:component::date::title%]"
           },
           "contract_id": {
             "name": "Contract ID"
@@ -71,6 +71,52 @@
           },
           "meter_serial_number": {
             "name": "Meter serial number"
+          }
+        }
+      },
+      "last_invoice": {
+        "name": "Last invoice",
+        "state_attributes": {
+          "date": {
+            "name": "[%key:component::date::title%]"
+          },
+          "contract_id": {
+            "name": "[%key:component::agur::entity::last_index::state_attributes::contract_id::name%]"
+          },
+          "contract_owner": {
+            "name": "[%key:component::agur::entity::last_index::state_attributes::contract_owner::name%]"
+          },
+          "contract_address": {
+            "name": "[%key:component::agur::entity::last_index::state_attributes::contract_address::name%]"
+          },
+          "meter_serial_number": {
+            "name": "[%key:component::agur::entity::last_index::state_attributes::meter_serial_number::name%]"
+          },
+          "invoice_number": {
+            "name": "Invoice number"
+          },
+          "payment_date": {
+            "name": "Payment date"
+          }
+        }
+      },
+      "balance": {
+        "name": "Balance",
+        "state_attributes": {
+          "date": {
+            "name": "[%key:component::date::title%]"
+          },
+          "contract_id": {
+            "name": "[%key:component::agur::entity::last_index::state_attributes::contract_id::name%]"
+          },
+          "contract_owner": {
+            "name": "[%key:component::agur::entity::last_index::state_attributes::contract_owner::name%]"
+          },
+          "contract_address": {
+            "name": "[%key:component::agur::entity::last_index::state_attributes::contract_address::name%]"
+          },
+          "meter_serial_number": {
+            "name": "[%key:component::agur::entity::last_index::state_attributes::meter_serial_number::name%]"
           }
         }
       }

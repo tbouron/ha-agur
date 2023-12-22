@@ -27,8 +27,8 @@
       "config_entry": "Impossible de sauvegarder la configuration. Merci d'essayer à nouveau plus tard."
     },
     "abort": {
-      "already_configured": "[%key:common::config_flow::abort::already_configured_account%]",
-      "reauth_successful": "[%key:common::config_flow::abort::reauth_successful%]"
+      "already_configured": "Le compte est déjà configuré",
+      "reauth_successful": "La ré-authentification a réussi"
     }
   },
   "options": {
@@ -46,22 +46,68 @@
       }
     },
     "error": {
-      "contact": "Fail to get the credentials for your Agur account. The configuration might be corrupted. Please remove this account and add it again.",
-      "auth": "Fail to log into your Agur account. Please check your username and password.",
-      "contracts": "Fail to fetch the contracts from your Agur account. Please try again later.",
-      "unknown": "[%key:common::config_flow::error::unknown%]"
+      "contact": "Impossible de récupérer les détails de connexion pour votre compte Agur, la configuration est peut être corrompue. Veuillez effacer ce compte et l'ajouter à nouveau.",
+      "auth": "Impossible de se connecter à votre compte Agur. Merci de vérifier que votre identifiant et mot de passe sont corrects.",
+      "contracts": "Impossible de récupérer les contrats associés à votre compte Agur. Merci d'essayer à nouveau plus tard.",
+      "unknown": "Erreur inattendue"
     }
   },
   "entity": {
     "sensor": {
-      "last_water_index": {
+      "last_index": {
         "name": "Dernier index",
         "state_attributes": {
-          "last_read": {
+          "date": {
             "name": "Date"
           },
           "contract_id": {
-            "name": "Abonnement"
+            "name": "Contrat"
+          },
+          "contract_owner": {
+            "name": "Titulaire"
+          },
+          "contract_address": {
+            "name": "Adresse"
+          },
+          "meter_serial_number": {
+            "name": "Compteur"
+          }
+        }
+      },
+      "last_invoice": {
+        "name": "Dernière facture",
+        "state_attributes": {
+          "date": {
+            "name": "Date"
+          },
+          "contract_id": {
+            "name": "Contrat"
+          },
+          "contract_owner": {
+            "name": "Titulaire"
+          },
+          "contract_address": {
+            "name": "Adresse"
+          },
+          "meter_serial_number": {
+            "name": "Compteur"
+          },
+          "invoice_number": {
+            "name": "Facture"
+          },
+          "payment_date": {
+            "name": "Date de paiement"
+          }
+        }
+      },
+      "balance": {
+        "name": "Solde du",
+        "state_attributes": {
+          "date": {
+            "name": "Date"
+          },
+          "contract_id": {
+            "name": "Contrat"
           },
           "contract_owner": {
             "name": "Titulaire"
