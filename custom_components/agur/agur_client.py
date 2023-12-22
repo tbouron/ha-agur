@@ -35,6 +35,26 @@ class AgurContract:
             self.meter_endpoint_number = json["numeroPointLivraison"]
 
 
+class AgurInvoice:
+    number: str | None = None
+    total: float | None = None
+    issue_date: datetime | None = None
+    payment_date: datetime | None = None
+
+    def __init__(self, json: dict[str, Any]) -> None:
+        if "numeroFactureClient" in json:
+            self.number = json["numeroFactureClient"]
+
+        if "montantTTCFacture" in json:
+            self.total = float(json["montantTTCFacture"])
+
+        if "dateEmissionFacture" in json:
+            self.issue_date = datetime.fromisoformat(json["dateEmissionFacture"])
+
+        if "dateLimitePaiementFacture" in json:
+            self.payment_date = datetime.fromisoformat(json["dateLimitePaiementFacture"])
+
+
 class AgurDataPoint:
     value: float | None = None
     date: datetime | None = None
@@ -123,3 +143,26 @@ class AgurClient:
         response.raise_for_status()
 
         return list(map(lambda json: AgurDataPoint(json=json), response.json()["resultats"]))
+
+    def get_invoices(self, contract_id) -> list[AgurInvoice]:
+        response = get(
+            f"https://ael.agur.fr/webapi/Facture/listeFactures?numeroContrat={contract_id}&recherche=&tri=&triDecroissant=false&indexPage=0&nbElements=25&dateDebut=&dateFin=&listeColonnes=&profondeurHistorique=-1",
+            headers={
+                "ConversationId": self.app_id,
+                "User-Agent": self.user_agent,
+                "Token": self.auth_token,
+            })
+        response.raise_for_status()
+
+        return list(map(lambda json: AgurInvoice(json=json), response.json()["resultats"]))
+
+    def get_balance(self, contract_id) -> float:
+        response = get(f"https://ael.agur.fr/webapi/Facturation/soldeComptableContratAbonnement/{contract_id}",
+                       headers={
+                           "ConversationId": self.app_id,
+                           "User-Agent": self.user_agent,
+                           "Token": self.auth_token,
+                       })
+        response.raise_for_status()
+
+        return float(response.json().replace('.', '').replace(',', '.'))

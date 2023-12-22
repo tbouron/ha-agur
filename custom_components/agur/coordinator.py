@@ -6,15 +6,14 @@ from datetime import timedelta, datetime
 
 from homeassistant.components.recorder import get_instance
 from homeassistant.components.recorder.models import StatisticData, StatisticMetaData
-from homeassistant.components.recorder.purge import purge_entity_data
-from homeassistant.components.recorder.statistics import get_last_statistics, async_add_external_statistics, clear_statistics
+from homeassistant.components.recorder.statistics import get_last_statistics, async_add_external_statistics
 from homeassistant.const import UnitOfVolume
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from requests import HTTPError
 
-from .agur_client import AgurClient, AgurContract, AgurDataPoint
+from .agur_client import AgurClient, AgurContract, AgurDataPoint, AgurInvoice
 from .const import DOMAIN
 
 _LOGGER: logging.Logger = logging.getLogger(__name__)
@@ -24,15 +23,50 @@ SCAN_INTERVAL = timedelta(days=1)
 
 class AgurDataUpdateCoordinatorData:
     data_points: list[AgurDataPoint]
+    invoices: list[AgurInvoice]
     contract: AgurContract
+    balance: float
 
-    def __init__(self, data_points: list[AgurDataPoint], contract: AgurContract):
+    def __init__(
+            self,
+            data_points: list[AgurDataPoint],
+            invoices: list[AgurInvoice],
+            contract: AgurContract,
+            balance: float,
+    ):
+        # TODO: Sort from date descending
         self.data_points = data_points
+        self.invoices = invoices
         self.contract = contract
+        self.balance = balance
 
     @property
-    def latest_data_point(self) -> AgurDataPoint | None:
+    def last_index(self) -> AgurDataPoint | None:
         return self.data_points[0] if len(self.data_points) > 0 else None
+
+    @property
+    def last_index_value(self) -> float | None:
+        return self.last_index.value if self.last_index is not None else None
+
+    @property
+    def last_index_date(self) -> datetime | None:
+        return self.last_index.date if self.last_index is not None else None
+
+    @property
+    def last_invoice(self) -> AgurInvoice | None:
+        return self.invoices[0] if len(self.invoices) > 0 else None
+
+    @property
+    def last_invoice_value(self) -> float | None:
+        return self.last_invoice.total if self.last_invoice is not None else None
+
+    @property
+    def last_invoice_date(self) -> datetime | None:
+        return self.last_invoice.issue_date if self.last_invoice is not None else None
+
+    @property
+    def last_balance_value(self) -> float | None:
+        return self.balance
 
 
 class AgurDataUpdateCoordinator(DataUpdateCoordinator[dict[str, AgurDataUpdateCoordinatorData]]):
@@ -81,9 +115,16 @@ class AgurDataUpdateCoordinator(DataUpdateCoordinator[dict[str, AgurDataUpdateCo
                 _LOGGER.debug(f"Fetching details and history for contract '{contract_id}'")
                 results = await asyncio.gather(
                     self._async_get_data_points(contract_id=contract_id),
-                    self._async_get_contract(contract_id=contract_id)
+                    self._async_get_invoices(contract_id=contract_id),
+                    self._async_get_contract(contract_id=contract_id),
+                    self._async_get_balance(contract_id=contract_id),
                 )
-                data[contract_id] = AgurDataUpdateCoordinatorData(data_points=results[0], contract=results[1])
+                data[contract_id] = AgurDataUpdateCoordinatorData(
+                    data_points=results[0],
+                    invoices=results[1],
+                    contract=results[2],
+                    balance=results[3],
+                )
 
                 await self._handle_statistics(coordinator_data=data[contract_id])
 
@@ -111,9 +152,17 @@ class AgurDataUpdateCoordinator(DataUpdateCoordinator[dict[str, AgurDataUpdateCo
         client = AgurClient(session_token=self.session_token, auth_token=self.auth_token)
         return await self.hass.async_add_executor_job(client.get_data, contract_id)
 
+    async def _async_get_invoices(self, contract_id) -> list[AgurInvoice]:
+        client = AgurClient(session_token=self.session_token, auth_token=self.auth_token)
+        return await self.hass.async_add_executor_job(client.get_invoices, contract_id)
+
     async def _async_get_contract(self, contract_id) -> AgurContract:
         client = AgurClient(session_token=self.session_token, auth_token=self.auth_token)
         return await self.hass.async_add_executor_job(client.get_contract, contract_id)
+
+    async def _async_get_balance(self, contract_id) -> float:
+        client = AgurClient(session_token=self.session_token, auth_token=self.auth_token)
+        return await self.hass.async_add_executor_job(client.get_balance, contract_id)
 
     async def _handle_statistics(self, coordinator_data: AgurDataUpdateCoordinatorData) -> None:
         statistic_id = f"{DOMAIN}:water_consumption_{coordinator_data.contract.id}"
