@@ -3,7 +3,7 @@
   "name": "Agur",
   "version": "0.1.0",
   "codeowners": ["@tbouron"],
-  "dependencies": [],
+  "dependencies": ["recorder"],
   "documentation": "https://github.com/tbouron/ha-agur",
   "issue_tracker": "https://github.com/tbouron/ha-agur/issues",
   "iot_class": "cloud_polling",
