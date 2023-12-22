@@ -1,12 +1,12 @@
 {
   "domain": "agur",
   "name": "Agur",
-  "version": "0.1.0",
   "codeowners": ["@tbouron"],
+  "config_flow": true,
   "dependencies": ["recorder"],
   "documentation": "https://github.com/tbouron/ha-agur",
-  "issue_tracker": "https://github.com/tbouron/ha-agur/issues",
   "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/tbouron/ha-agur/issues",
   "requirements": [],
-  "config_flow": true
+  "version": "0.1.0"
 }
