@@ -99,16 +99,16 @@ class AgurDataUpdateCoordinator(DataUpdateCoordinator[dict[str, AgurDataUpdateCo
             _LOGGER.debug("First sync: fetching session token")
             await self._async_get_session_token()
 
-        # If the session token is expired, retrieve one
-        if datetime.now().replace(tzinfo=self.expiration_date.tzinfo) > self.expiration_date:
-            _LOGGER.debug("Session token expired: fetching a new one")
-            await self._async_get_session_token()
-
         try:
             # If we do not have any auth token (first time)
             if self.auth_token is None:
                 _LOGGER.debug("First sync: fetching auth token")
                 await self._async_get_auth_token()
+
+            # If the session token is expired, retrieve one
+            if datetime.now().replace(tzinfo=self.expiration_date.tzinfo) > self.expiration_date:
+                _LOGGER.debug("Session token expired: fetching a new one")
+                await self._async_refresh_tokens()
 
             data: dict[str, AgurDataUpdateCoordinatorData] = {}
             for contract_id in self.contract_ids:
@@ -147,6 +147,10 @@ class AgurDataUpdateCoordinator(DataUpdateCoordinator[dict[str, AgurDataUpdateCo
         client = AgurClient(session_token=self.session_token)
         response = await self.hass.async_add_executor_job(client.login, self.username, self.password)
         self.auth_token = response["tokenAuthentique"]
+
+    async def _async_refresh_tokens(self) -> None:
+        await self._async_get_session_token()
+        await self._async_get_auth_token()
 
     async def _async_get_data_points(self, contract_id) -> list[AgurDataPoint]:
         client = AgurClient(session_token=self.session_token, auth_token=self.auth_token)
