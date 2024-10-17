@@ -216,7 +216,7 @@ class AgurDataUpdateCoordinator(DataUpdateCoordinator[dict[str, AgurDataUpdateCo
 
             statistics.append(
                 StatisticData(
-                    start=_start,
+                    start=_start.replace(minute=0, second=0, microsecond=0),
                     state=_state,
                     sum=_sum,
                 )
