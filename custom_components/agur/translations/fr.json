@@ -52,6 +52,19 @@
       "unknown": "Erreur inattendue"
     }
   },
+  "issues": {
+    "statistics_unit_liters": {
+      "title": "Les statistiques d'eau sont stockées en litres",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Convertir les statistiques d'eau en mètres cubes",
+            "description": "Les statistiques de consommation d'eau pour le contrat **{contract_id}** sont actuellement stockées en litres (L). Le tableau de bord Énergie nécessite des mètres cubes (m³) pour activer la tarification de l'eau.\n\nCette opération va convertir tout l'historique en m³ (en divisant toutes les valeurs par 1000). Cette opération est irréversible."
+          }
+        }
+      }
+    }
+  },
   "entity": {
     "sensor": {
       "last_index": {

@@ -168,8 +168,11 @@ class AgurDataUpdateCoordinator(DataUpdateCoordinator[dict[str, AgurDataUpdateCo
         client = AgurClient(session_token=self.session_token, auth_token=self.auth_token)
         return await self.hass.async_add_executor_job(client.get_balance, contract_id)
 
+    def get_statistic_id(self, contract_id: str) -> str:
+        return f"{DOMAIN}:water_consumption_{contract_id}"
+
     async def _handle_statistics(self, coordinator_data: AgurDataUpdateCoordinatorData) -> None:
-        statistic_id = f"{DOMAIN}:water_consumption_{coordinator_data.contract.id}"
+        statistic_id = self.get_statistic_id(coordinator_data.contract.id)
         recorder = get_instance(self.hass)
 
         if self.import_statistics is False:
@@ -198,12 +201,18 @@ class AgurDataUpdateCoordinator(DataUpdateCoordinator[dict[str, AgurDataUpdateCo
             # If the statistic does not exist, it means we are importing it for the first time, i.e. we import the
             # entire set of `daily_index_data`
             min_start = None
+            unit = UnitOfVolume.CUBIC_METERS
         else:
             # Otherwise, we want to reimport the last 30 days of data, just in case there are some corrections that
             # need to be done
             # `daily_index_data[0]` is the most recent data point, so we get that date and subtract 30 days.
             min_start = daily_indexes_data[0].date - timedelta(days=30)
+            # Preserve the existing unit to avoid corrupting historical data.
+            # If existing stats are in L, keep writing L until the repair migration runs.
+            existing_unit = last_stats[statistic_id][0].get("unit")
+            unit = UnitOfVolume.LITERS if existing_unit == UnitOfVolume.LITERS else UnitOfVolume.CUBIC_METERS
 
+        divisor = 1000 if unit == UnitOfVolume.CUBIC_METERS else 1
         statistics = []
 
         for index, daily_index_data in enumerate(list(reversed(daily_indexes_data))):
@@ -211,8 +220,8 @@ class AgurDataUpdateCoordinator(DataUpdateCoordinator[dict[str, AgurDataUpdateCo
             if min_start is not None and _start <= min_start:
                 continue
 
-            _state = daily_index_data.value - daily_indexes_data[index - 1].value if index > 0 else 0
-            _sum = daily_index_data.value
+            _state = (daily_index_data.value - daily_indexes_data[index - 1].value) / divisor if index > 0 else 0
+            _sum = daily_index_data.value / divisor
 
             statistics.append(
                 StatisticData(
@@ -222,11 +231,10 @@ class AgurDataUpdateCoordinator(DataUpdateCoordinator[dict[str, AgurDataUpdateCo
                 )
             )
 
-        unit = UnitOfVolume.LITERS
         metadata = StatisticMetaData(
             has_mean=False,
             has_sum=True,
-            name=f"Water consumption",
+            name="Water consumption",
             source=DOMAIN,
             statistic_id=statistic_id,
             unit_of_measurement=unit,
