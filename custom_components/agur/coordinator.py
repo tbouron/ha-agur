@@ -6,7 +6,7 @@ from datetime import timedelta, datetime
 
 from homeassistant.components.recorder import get_instance
 from homeassistant.components.recorder.models import StatisticData, StatisticMetaData
-from homeassistant.components.recorder.statistics import get_last_statistics, async_add_external_statistics
+from homeassistant.components.recorder.statistics import get_last_statistics, async_import_statistics
 from homeassistant.const import UnitOfVolume
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
@@ -168,67 +168,48 @@ class AgurDataUpdateCoordinator(DataUpdateCoordinator[dict[str, AgurDataUpdateCo
         client = AgurClient(session_token=self.session_token, auth_token=self.auth_token)
         return await self.hass.async_add_executor_job(client.get_balance, contract_id)
 
-    async def _handle_statistics(self, coordinator_data: AgurDataUpdateCoordinatorData) -> None:
-        statistic_id = f"{DOMAIN}:water_consumption_{coordinator_data.contract.id}"
-        recorder = get_instance(self.hass)
+    def get_statistic_id(self, contract_id: str) -> str:
+        return f"{DOMAIN}:water_consumption_{contract_id}"
 
-        if self.import_statistics is False:
-            # TODO: We might want to purge the statistics here. Although still TBD
+    async def _handle_statistics(self, coordinator_data: AgurDataUpdateCoordinatorData) -> None:
+        if not self.import_statistics:
             return
 
-        # I've decided to insert statics without a backing of a sensor. Few integrations in core use the same principal
-        # For example:
-        # - https://github.com/home-assistant/core/blob/dev/homeassistant/components/tibber/sensor.py#L594-L690
-        # - https://github.com/home-assistant/core/blob/dev/homeassistant/components/opower/coordinator.py#L89-L188
-        #
-        # Another solution would be to use a sensor for this using the following library:
-        # https://github.com/ldotlopez/ha-historical-sensor
+        contract_id = coordinator_data.contract.id
+        statistic_id = f"sensor.{DOMAIN}_water_consumption_{contract_id}"
+        recorder = get_instance(self.hass)
 
         daily_indexes_data = coordinator_data.data_points
         last_stats = await recorder.async_add_executor_job(
-            get_last_statistics,
-            self.hass,
-            1,
-            statistic_id,
-            True,
-            set("sum")
+            get_last_statistics, self.hass, 1, statistic_id, True, {"sum"}
         )
 
-        if not last_stats:
-            # If the statistic does not exist, it means we are importing it for the first time, i.e. we import the
-            # entire set of `daily_index_data`
-            min_start = None
-        else:
-            # Otherwise, we want to reimport the last 30 days of data, just in case there are some corrections that
-            # need to be done
-            # `daily_index_data[0]` is the most recent data point, so we get that date and subtract 30 days.
-            min_start = daily_indexes_data[0].date - timedelta(days=30)
+        min_start = (
+            daily_indexes_data[0].date - timedelta(days=30)
+            if last_stats
+            else None
+        )
 
         statistics = []
-
         for index, daily_index_data in enumerate(list(reversed(daily_indexes_data))):
-            _start = daily_index_data.date
-            if min_start is not None and _start <= min_start:
+            if min_start and daily_index_data.date <= min_start:
                 continue
 
-            _state = daily_index_data.value - daily_indexes_data[index - 1].value if index > 0 else 0
-            _sum = daily_index_data.value
-
+            value_m3 = daily_index_data.value / 1000
             statistics.append(
                 StatisticData(
-                    start=_start.replace(minute=0, second=0, microsecond=0),
-                    state=_state,
-                    sum=_sum,
+                    start=daily_index_data.date.replace(minute=0, second=0, microsecond=0),
+                    state=(daily_index_data.value - daily_indexes_data[index - 1].value) / 1000 if index > 0 else 0,
+                    sum=value_m3,
                 )
             )
 
-        unit = UnitOfVolume.LITERS
         metadata = StatisticMetaData(
             has_mean=False,
             has_sum=True,
-            name=f"Water consumption",
-            source=DOMAIN,
+            name=f"Water consumption {contract_id}",
+            source="recorder",
             statistic_id=statistic_id,
-            unit_of_measurement=unit,
+            unit_of_measurement=UnitOfVolume.CUBIC_METERS,
         )
-        async_add_external_statistics(self.hass, metadata, statistics)
+        async_import_statistics(self.hass, metadata, statistics)

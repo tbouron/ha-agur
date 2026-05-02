@@ -27,6 +27,14 @@ SENSORS: tuple[SensorEntityDescription, ...] = (
         native_unit_of_measurement=UnitOfVolume.LITERS,
     ),
     SensorEntityDescription(
+        key="water_consumption",
+        translation_key="water_consumption",
+        icon="mdi:water",
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        device_class=SensorDeviceClass.WATER,
+        native_unit_of_measurement=UnitOfVolume.CUBIC_METERS,
+    ),
+    SensorEntityDescription(
         key="last_invoice",
         translation_key="last_invoice",
         icon="mdi:receipt-text-check-outline",
@@ -52,6 +60,9 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
     for contract_id in coordinator.contract_ids:
         _LOGGER.debug(f"Add sensor for Agur contract {contract_id}")
         for entity_description in SENSORS:
+            # Skip water_consumption sensor if statistics import is disabled
+            if entity_description.key == "water_consumption" and not coordinator.import_statistics:
+                continue
             entities.append(AgurSensor(
                 coordinator=coordinator,
                 contract_id=contract_id,
@@ -88,7 +99,7 @@ class AgurSensor(CoordinatorEntity[AgurDataUpdateCoordinator], SensorEntity):
             "meter_serial_number": self.coordinator.data[contract_id].contract.meter_serial_number,
         }
 
-        if entity_description.key != "balance":
+        if entity_description.key.startswith("last_"):
             self._attr_extra_state_attributes["date"] = getattr(
                 self.coordinator.data[self._contract_id],
                 f"{self.entity_description.key}_date"
@@ -109,6 +120,11 @@ class AgurSensor(CoordinatorEntity[AgurDataUpdateCoordinator], SensorEntity):
     @property
     def native_value(self) -> float:
         """Return the state of the sensor."""
+        if self.entity_description.key == "water_consumption":
+            # Return the latest cumulative value in cubic meters
+            data_points = self.coordinator.data[self._contract_id].data_points
+            return data_points[0].value / 1000 if data_points else None
+
         return getattr(
             self.coordinator.data[self._contract_id],
             self.entity_description.key if self.entity_description.key == "balance" else f"{self.entity_description.key}_value"

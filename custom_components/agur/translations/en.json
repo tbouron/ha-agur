@@ -52,6 +52,19 @@
       "unknown": "Unexpected error"
     }
   },
+  "issues": {
+    "statistics_unit_liters": {
+      "title": "Water statistics are stored in liters",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Convert water statistics to cubic meters",
+            "description": "The water consumption statistics for contract **{contract_id}** are currently stored in liters (L). The Energy dashboard requires cubic meters (m³) to enable water pricing.\n\nThis will convert all historical statistics to m³ (dividing all values by 1000). This operation cannot be undone."
+          }
+        }
+      }
+    }
+  },
   "entity": {
     "sensor": {
       "last_index": {
