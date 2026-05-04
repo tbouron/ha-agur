@@ -200,7 +200,7 @@ class AgurOptionFlow(config_entries.OptionsFlow):
             config_entry: config_entries.ConfigEntry
     ) -> None:
         """Initialize options flow."""
-        self.config_entry = config_entry
+        self._config_entry = config_entry
 
     async def async_step_init(
             self,
@@ -210,16 +210,16 @@ class AgurOptionFlow(config_entries.OptionsFlow):
 
         errors = {}
         available_contracts = []
-        default_contracts = self.config_entry.options.get(CONF_CONTRACT_IDS, [])
-        default_import_statistics = self.config_entry.options.get(CONF_IMPORT_STATISTICS, False)
+        default_contracts = self._config_entry.options.get(CONF_CONTRACT_IDS, [])
+        default_import_statistics = self._config_entry.options.get(CONF_IMPORT_STATISTICS, False)
 
         # We want to save here
         if user_input is not None:
             return self.async_create_entry(data=user_input)
 
         try:
-            username = self.config_entry.data.get(CONF_USERNAME, None)
-            password = self.config_entry.data.get(CONF_PASSWORD, None)
+            username = self._config_entry.data.get(CONF_USERNAME, None)
+            password = self._config_entry.data.get(CONF_PASSWORD, None)
             if username is None:
                 raise ConfigError("Cannot retrieve the username from the config entry")
             if password is None:
