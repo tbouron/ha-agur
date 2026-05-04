@@ -69,18 +69,32 @@ class AgurDataPoint:
 
 class AgurClient:
     app_id = str(uuid.uuid4())
-    # TODO: This should come from the integration configuration? Maybe?
-    access_key = "XX_fr-5DjklsdMM-AGR-PRD"
     user_agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/113.0"
     session_token = None
     auth_token = None
+    host = None
+    base_path = None
+    access_key = None
+    client_id = None
 
-    def __init__(self, session_token: str = None, auth_token: str = None):
+    def __init__(
+        self,
+        session_token: str = None,
+        auth_token: str = None,
+        host: str = None,
+        base_path: str = None,
+        access_key: str = None,
+        client_id: str = None,
+    ):
         self.session_token = session_token
         self.auth_token = auth_token
+        self.host = host
+        self.base_path = base_path
+        self.access_key = access_key
+        self.client_id = client_id
 
     def init(self) -> dict[str, Any]:
-        response = post("https://ael.agur.fr/webapi/Acces/generateToken", headers={
+        response = post(f"https://{self.host}/{self.base_path}/Acces/generateToken", headers={
             "ConversationId": self.app_id,
             "Token": self.access_key,
             "Content-Type": "application/json;charset=utf-8",
@@ -88,7 +102,7 @@ class AgurClient:
             "User-Agent": self.user_agent,
         }, json={
             "ConversationId": self.app_id,
-            "ClientId": "AEL-TOKEN-AGR-PRD",
+            "ClientId": self.client_id,
             "AccessKey": self.access_key,
         })
         response.raise_for_status()
@@ -96,7 +110,7 @@ class AgurClient:
         return response.json()
 
     def login(self, username, password) -> dict[str, Any]:
-        response = post("https://ael.agur.fr/webapi/Utilisateur/authentification", headers={
+        response = post(f"https://{self.host}/{self.base_path}/Utilisateur/authentification", headers={
             "ConversationId": self.app_id,
             "Token": self.session_token,
             "Content-Type": "application/json;charset=utf-8",
@@ -112,7 +126,7 @@ class AgurClient:
 
     def get_contracts(self) -> list[AgurContract]:
         response = get(
-            "https://ael.agur.fr/webapi/Abonnement/contrats?userWebId=&recherche=&tri=NumeroContrat&triDecroissant=false&indexPage=0&nbElements=25",
+            f"https://{self.host}/{self.base_path}/Abonnement/contrats?userWebId=&recherche=&tri=NumeroContrat&triDecroissant=false&indexPage=0&nbElements=25",
             headers={
                 "ConversationId": self.app_id,
                 "User-Agent": self.user_agent,
@@ -124,7 +138,7 @@ class AgurClient:
 
     def get_contract(self, contract_id: str) -> AgurContract:
         response = get(
-            f"https://ael.agur.fr/webapi/Abonnement/detailAbonnement/{contract_id}",
+            f"https://{self.host}/{self.base_path}/Abonnement/detailAbonnement/{contract_id}",
             headers={
                 "ConversationId": self.app_id,
                 "User-Agent": self.user_agent,
@@ -135,7 +149,7 @@ class AgurClient:
         return AgurContract(json=response.json())
 
     def get_data(self, contract_id) -> list[AgurDataPoint]:
-        response = get(f"https://ael.agur.fr/webapi/Facturation/listeConsommationsFacturees/{contract_id}", headers={
+        response = get(f"https://{self.host}/{self.base_path}/Facturation/listeConsommationsFacturees/{contract_id}", headers={
             "ConversationId": self.app_id,
             "User-Agent": self.user_agent,
             "Token": self.auth_token,
@@ -146,7 +160,7 @@ class AgurClient:
 
     def get_invoices(self, contract_id) -> list[AgurInvoice]:
         response = get(
-            f"https://ael.agur.fr/webapi/Facture/listeFactures?numeroContrat={contract_id}&recherche=&tri=&triDecroissant=false&indexPage=0&nbElements=25&dateDebut=&dateFin=&listeColonnes=&profondeurHistorique=-1",
+            f"https://{self.host}/{self.base_path}/Facture/listeFactures?numeroContrat={contract_id}&recherche=&tri=&triDecroissant=false&indexPage=0&nbElements=25&dateDebut=&dateFin=&listeColonnes=&profondeurHistorique=-1",
             headers={
                 "ConversationId": self.app_id,
                 "User-Agent": self.user_agent,
@@ -157,7 +171,7 @@ class AgurClient:
         return list(map(lambda json: AgurInvoice(json=json), response.json()["resultats"]))
 
     def get_balance(self, contract_id) -> float:
-        response = get(f"https://ael.agur.fr/webapi/Facturation/soldeComptableContratAbonnement/{contract_id}",
+        response = get(f"https://{self.host}/{self.base_path}/Facturation/soldeComptableContratAbonnement/{contract_id}",
                        headers={
                            "ConversationId": self.app_id,
                            "User-Agent": self.user_agent,

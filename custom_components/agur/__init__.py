@@ -5,7 +5,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 
 from .const import DOMAIN, STARTUP_MESSAGE, CONF_USERNAME, CONF_PASSWORD, PLATFORMS, CONF_CONTRACT_IDS, \
-    CONF_IMPORT_STATISTICS
+    CONF_IMPORT_STATISTICS, CONF_PROVIDER, DEFAULT_PROVIDER
 from .coordinator import AgurDataUpdateCoordinator
 from .repairs import async_check_and_create_repair_issues
 
@@ -23,6 +23,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
         hass.data.setdefault(DOMAIN, {})
         _LOGGER.debug(STARTUP_MESSAGE)
 
+    provider: str = config_entry.data.get(CONF_PROVIDER, DEFAULT_PROVIDER)
     username: str = config_entry.data.get(CONF_USERNAME)
     password: str = config_entry.data.get(CONF_PASSWORD)
     contract_ids: list[str] = config_entry.options.get(CONF_CONTRACT_IDS)
@@ -30,6 +31,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
 
     coordinator = AgurDataUpdateCoordinator(
         hass=hass,
+        provider=provider,
         username=username,
         password=password,
         contract_ids=contract_ids,

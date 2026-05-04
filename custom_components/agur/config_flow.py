@@ -12,13 +12,15 @@ from homeassistant.helpers.selector import TextSelector, TextSelectorType, TextS
 from voluptuous import Schema
 
 from .agur_client import AgurClient
-from .const import DOMAIN, CONF_USERNAME, CONF_PASSWORD, VERSION, CONF_CONTRACT_IDS, CONF_IMPORT_STATISTICS
+from .const import DOMAIN, CONF_USERNAME, CONF_PASSWORD, VERSION, CONF_CONTRACT_IDS, CONF_IMPORT_STATISTICS, \
+    CONF_PROVIDER, DEFAULT_PROVIDER, PROVIDERS
 
 _LOGGER: logging.Logger = logging.getLogger(__package__)
 AUTH_TOKEN = "auth"
 SESSION_TOKEN = "session"
 USER_SCHEMA = vol.Schema(
     {
+        vol.Required(CONF_PROVIDER, default=DEFAULT_PROVIDER): vol.In({k: v["name"] for k, v in PROVIDERS.items()}),
         vol.Required(CONF_USERNAME): TextSelector(
             TextSelectorConfig(
                 type=TextSelectorType.EMAIL,
@@ -34,14 +36,27 @@ USER_SCHEMA = vol.Schema(
     }
 )
 
-async def get_agur_tokens(hass: HomeAssistant, username: str, password: str) -> dict[str, str]:
+async def get_agur_tokens(hass: HomeAssistant, username: str, password: str, provider: str = DEFAULT_PROVIDER) -> dict[str, str]:
     try:
         tokens = {}
+        provider_config = PROVIDERS[provider]
 
-        client = AgurClient()
+        client = AgurClient(
+            host=provider_config["host"],
+            base_path=provider_config["base_path"],
+            access_key=provider_config["access_key"],
+            client_id=provider_config["client_id"],
+        )
         response = await hass.async_add_executor_job(client.init)
         tokens[SESSION_TOKEN] = response["token"]
-        client = AgurClient(session_token=tokens[SESSION_TOKEN])
+        
+        client = AgurClient(
+            session_token=tokens[SESSION_TOKEN],
+            host=provider_config["host"],
+            base_path=provider_config["base_path"],
+            access_key=provider_config["access_key"],
+            client_id=provider_config["client_id"],
+        )
         response = await hass.async_add_executor_job(client.login, username, password)
         tokens[AUTH_TOKEN] = response["tokenAuthentique"]
 
@@ -50,9 +65,17 @@ async def get_agur_tokens(hass: HomeAssistant, username: str, password: str) -> 
         raise AuthError(ex)
 
 
-async def get_agur_contract_options(hass: HomeAssistant, session_token: str, auth_token: str):
+async def get_agur_contract_options(hass: HomeAssistant, session_token: str, auth_token: str, provider: str = DEFAULT_PROVIDER):
     try:
-        client = AgurClient(session_token=session_token, auth_token=auth_token)
+        provider_config = PROVIDERS[provider]
+        client = AgurClient(
+            session_token=session_token,
+            auth_token=auth_token,
+            host=provider_config["host"],
+            base_path=provider_config["base_path"],
+            access_key=provider_config["access_key"],
+            client_id=provider_config["client_id"],
+        )
         return {c.id: f"Contract {c.id} ({c.address})" for c in await hass.async_add_executor_job(client.get_contracts)}
     except Exception as ex:
         raise ContractError(ex)
@@ -65,6 +88,7 @@ class AgurConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     def __init__(self):
         """Initialize."""
+        self._provider: str | None = None
         self._username: str | None = None
         self._password: str | None = None
         self._session_token: str | None = None
@@ -82,6 +106,7 @@ class AgurConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 data_schema=USER_SCHEMA
             )
 
+        self._provider = user_input.get(CONF_PROVIDER, DEFAULT_PROVIDER)
         self._username = user_input[CONF_USERNAME]
         self._password = user_input[CONF_PASSWORD]
 
@@ -94,7 +119,8 @@ class AgurConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         available_contracts = await get_agur_contract_options(
             hass=self.hass,
             session_token=self._session_token,
-            auth_token=self._auth_token
+            auth_token=self._auth_token,
+            provider=self._provider
         )
         default_contracts = list(available_contracts.keys())
 
@@ -127,7 +153,12 @@ class AgurConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors = {}
 
         try:
-            tokens = await get_agur_tokens(hass=self.hass, username=self._username, password=self._password)
+            tokens = await get_agur_tokens(
+                hass=self.hass,
+                username=self._username,
+                password=self._password,
+                provider=self._provider
+            )
             self._session_token = tokens[SESSION_TOKEN]
             self._auth_token = tokens[AUTH_TOKEN]
 
@@ -160,6 +191,7 @@ class AgurConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def _async_create_entry(self) -> FlowResult:
         """Create the config entry."""
         config_data = {
+            CONF_PROVIDER: self._provider,
             CONF_USERNAME: self._username,
             CONF_PASSWORD: self._password,
         }
@@ -218,6 +250,7 @@ class AgurOptionFlow(config_entries.OptionsFlow):
             return self.async_create_entry(data=user_input)
 
         try:
+            provider = self._config_entry.data.get(CONF_PROVIDER, DEFAULT_PROVIDER)
             username = self._config_entry.data.get(CONF_USERNAME, None)
             password = self._config_entry.data.get(CONF_PASSWORD, None)
             if username is None:
@@ -228,12 +261,14 @@ class AgurOptionFlow(config_entries.OptionsFlow):
             tokens = await get_agur_tokens(
                 hass=self.hass,
                 username=username,
-                password=password
+                password=password,
+                provider=provider
             )
             available_contracts = await get_agur_contract_options(
                 hass=self.hass,
                 session_token=tokens[SESSION_TOKEN],
-                auth_token=tokens[AUTH_TOKEN]
+                auth_token=tokens[AUTH_TOKEN],
+                provider=provider
             )
         except ConfigError as ex:
             _LOGGER.error(ex)

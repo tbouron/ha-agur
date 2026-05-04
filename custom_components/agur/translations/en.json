@@ -6,6 +6,7 @@
         "title": "Agur account",
         "description": "Please enter your login credential for your Agur account.",
         "data": {
+          "provider": "Provider",
           "username": "Username",
           "password": "Password"
         }

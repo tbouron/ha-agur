@@ -6,6 +6,7 @@
         "title": "Compte Agur",
         "description": "Merci d'entrer votre identifiant et mot de passe pour votre compte Agur.",
         "data": {
+          "provider": "Fournisseur",
           "username": "Identifiant",
           "password": "Mot de passe"
         }

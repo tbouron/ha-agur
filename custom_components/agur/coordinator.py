@@ -14,7 +14,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from requests import HTTPError
 
 from .agur_client import AgurClient, AgurContract, AgurDataPoint, AgurInvoice
-from .const import DOMAIN
+from .const import DOMAIN, PROVIDERS, DEFAULT_PROVIDER
 
 _LOGGER: logging.Logger = logging.getLogger(__name__)
 # TODO: This should be configurable?
@@ -75,6 +75,7 @@ class AgurDataUpdateCoordinator(DataUpdateCoordinator[dict[str, AgurDataUpdateCo
     def __init__(
             self,
             hass: HomeAssistant,
+            provider: str,
             username: str,
             password: str,
             contract_ids: list[str],
@@ -85,6 +86,8 @@ class AgurDataUpdateCoordinator(DataUpdateCoordinator[dict[str, AgurDataUpdateCo
         self.expiration_date: datetime | None = None
         self.session_token: datetime | None = None
         self.auth_token: str | None = None
+        self.provider = provider
+        self.provider_config = PROVIDERS.get(provider, PROVIDERS[DEFAULT_PROVIDER])
         self.username = username
         self.password = password
         self.contract_ids = contract_ids
@@ -138,13 +141,24 @@ class AgurDataUpdateCoordinator(DataUpdateCoordinator[dict[str, AgurDataUpdateCo
             raise UpdateFailed(f"Error communicating with API: {exception}")
 
     async def _async_get_session_token(self) -> None:
-        client = AgurClient()
+        client = AgurClient(
+            host=self.provider_config["host"],
+            base_path=self.provider_config["base_path"],
+            access_key=self.provider_config["access_key"],
+            client_id=self.provider_config["client_id"],
+        )
         response = await self.hass.async_add_executor_job(client.init)
         self.session_token = response["token"]
         self.expiration_date = datetime.fromisoformat(response["expirationDate"])
 
     async def _async_get_auth_token(self) -> None:
-        client = AgurClient(session_token=self.session_token)
+        client = AgurClient(
+            session_token=self.session_token,
+            host=self.provider_config["host"],
+            base_path=self.provider_config["base_path"],
+            access_key=self.provider_config["access_key"],
+            client_id=self.provider_config["client_id"],
+        )
         response = await self.hass.async_add_executor_job(client.login, self.username, self.password)
         self.auth_token = response["tokenAuthentique"]
 
@@ -153,23 +167,48 @@ class AgurDataUpdateCoordinator(DataUpdateCoordinator[dict[str, AgurDataUpdateCo
         await self._async_get_auth_token()
 
     async def _async_get_data_points(self, contract_id) -> list[AgurDataPoint]:
-        client = AgurClient(session_token=self.session_token, auth_token=self.auth_token)
+        client = AgurClient(
+            session_token=self.session_token,
+            auth_token=self.auth_token,
+            host=self.provider_config["host"],
+            base_path=self.provider_config["base_path"],
+            access_key=self.provider_config["access_key"],
+            client_id=self.provider_config["client_id"],
+        )
         return await self.hass.async_add_executor_job(client.get_data, contract_id)
 
     async def _async_get_invoices(self, contract_id) -> list[AgurInvoice]:
-        client = AgurClient(session_token=self.session_token, auth_token=self.auth_token)
+        client = AgurClient(
+            session_token=self.session_token,
+            auth_token=self.auth_token,
+            host=self.provider_config["host"],
+            base_path=self.provider_config["base_path"],
+            access_key=self.provider_config["access_key"],
+            client_id=self.provider_config["client_id"],
+        )
         return await self.hass.async_add_executor_job(client.get_invoices, contract_id)
 
     async def _async_get_contract(self, contract_id) -> AgurContract:
-        client = AgurClient(session_token=self.session_token, auth_token=self.auth_token)
+        client = AgurClient(
+            session_token=self.session_token,
+            auth_token=self.auth_token,
+            host=self.provider_config["host"],
+            base_path=self.provider_config["base_path"],
+            access_key=self.provider_config["access_key"],
+            client_id=self.provider_config["client_id"],
+        )
         return await self.hass.async_add_executor_job(client.get_contract, contract_id)
 
     async def _async_get_balance(self, contract_id) -> float:
-        client = AgurClient(session_token=self.session_token, auth_token=self.auth_token)
+        client = AgurClient(
+            session_token=self.session_token,
+            auth_token=self.auth_token,
+            host=self.provider_config["host"],
+            base_path=self.provider_config["base_path"],
+            access_key=self.provider_config["access_key"],
+            client_id=self.provider_config["client_id"],
+        )
         return await self.hass.async_add_executor_job(client.get_balance, contract_id)
-
-    def get_statistic_id(self, contract_id: str) -> str:
-        return f"{DOMAIN}:water_consumption_{contract_id}"
 
     async def _handle_statistics(self, coordinator_data: AgurDataUpdateCoordinatorData) -> None:
         if not self.import_statistics:
